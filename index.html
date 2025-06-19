@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Team Word Scramble</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f0f4f8; /* Light gray-blue background */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .container {
+        background-color: #ffffff; /* White card background */
+        border-radius: 20px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        width: 100%;
+        max-width: 600px; /* Max width for readability */
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .scrambled-word {
+        font-size: 2.5rem; /* Larger font for main word */
+        font-weight: bold;
+        color: #2c3e50; /* Dark blue-gray */
+        letter-spacing: 3px;
+        margin-bottom: 20px;
+        word-wrap: break-word; /* Ensure long words wrap */
+      }
+      .feedback-message {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-top: 10px;
+        min-height: 30px; /* Reserve space to prevent layout shift */
+      }
+      .feedback-correct {
+        color: #27ae60; /* Green for correct */
+      }
+      .feedback-incorrect {
+        color: #e74c3c; /* Red for incorrect */
+      }
+      .correct-answer-display {
+        font-size: 1.1rem;
+        color: #7f8c8d; /* Gray for revealed answer */
+        margin-top: 10px;
+      }
+      /* Custom button styling */
+      .btn {
+        padding: 12px 25px;
+        border-radius: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        border: none;
+        font-size: 1rem;
+      }
+      .btn-primary {
+        background-color: #25c9d0; /* Blue */
+        color: white;
+        box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
+      }
+      .btn-primary:hover {
+        background-color: #2980b9;
+        box-shadow: 0 6px 15px rgba(52, 152, 219, 0.4);
+        transform: translateY(-2px);
+      }
+      .btn-secondary {
+        background-color: #95a5a6; /* Gray */
+        color: white;
+        box-shadow: 0 4px 10px rgba(149, 165, 166, 0.3);
+      }
+      .btn-secondary:hover {
+        background-color: #7f8c8d;
+        box-shadow: 0 6px 15px rgba(149, 165, 166, 0.4);
+        transform: translateY(-2px);
+      }
+      .input-field {
+        padding: 12px 20px;
+        border: 2px solid #bdc3c7;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        width: calc(100% - 40px); /* Adjust for padding */
+        max-width: 400px;
+        text-align: center;
+        color: #34495e;
+        box-sizing: border-box;
+      }
+      .input-field:focus {
+        outline: none;
+        border-color: #25c9d0;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3);
+      }
+      .button-group {
+        display: flex;
+        flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
+        gap: 15px;
+        justify-content: center;
+        margin-top: 20px;
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 640px) {
+        .container {
+          padding: 20px;
+        }
+        .scrambled-word {
+          font-size: 1.8rem;
+        }
+        .feedback-message {
+          font-size: 1rem;
+        }
+        .input-field {
+          font-size: 1rem;
+        }
+        .btn {
+          padding: 10px 20px;
+          font-size: 0.9rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="text-3xl font-bold text-gray-800">Team Word Scramble</h1>
+      <div class="text-xl text-gray-600 mb-4">
+        Round <span id="roundNumber">1</span> of
+        <span id="totalRounds">20</span>
+      </div>
+
+      <div class="scrambled-word" id="scrambledWordDisplay"></div>
+
+      <input
+        type="text"
+        id="guessInput"
+        class="input-field"
+        placeholder="Type your guess here..."
+        autofocus
+      />
+
+      <div class="feedback-message" id="feedbackMessage"></div>
+      <div class="correct-answer-display hidden" id="correctAnswerDisplay">
+        Correct Answer: <span id="actualCorrectWord"></span>
+      </div>
+
+      <div class="button-group">
+        <button id="submitGuessBtn" class="btn btn-primary">
+          Submit Guess
+        </button>
+        <button id="nextRoundBtn" class="btn btn-primary hidden">
+          Next Round
+        </button>
+        <button id="revealAnswerBtn" class="btn btn-secondary hidden">
+          Reveal Answer
+        </button>
+      </div>
+    </div>
+
+    <script>
+      // Array of words/phrases for the game.
+      // Sorted by approximate difficulty as requested by the user.
+      const words = [
+        { word: "CHEF" },
+        { word: "ECHO" },
+        { word: "SKIPPY" },
+        { word: "PITCH" },
+        { word: "PRODUCT" },
+        { word: "REVIEW" },
+        { word: "OLIVIA" },
+        { word: "ROADMAP" },
+        { word: "REFORGE" },
+        { word: "ADAM GODSON" },
+        { word: "CLIENT BOARD" },
+        { word: "GUIDING VALUES" },
+        { word: "HAPPY HOUR" },
+        { word: "ARTIFICIAL INTELLIGENCE" },
+        { word: "ELIZABETH REBELLO" },
+        { word: "PRODUCT REQUIREMENT DOCUMENT" },
+        { word: "LONG TERM SUPPORT" },
+        { word: "CREATE THE FUTURE" },
+        { word: "LARGE LANGUAGE MODEL" },
+        { word: "MINIMUM VIABLE PRODUCT" },
+      ];
+
+      let currentRound = 0;
+      let currentWord = {};
+      const totalRounds = words.length; // Dynamically set based on the array length
+
+      // Get DOM elements
+      const roundNumberSpan = document.getElementById("roundNumber");
+      const totalRoundsSpan = document.getElementById("totalRounds");
+      const scrambledWordDisplay = document.getElementById(
+        "scrambledWordDisplay"
+      );
+      const guessInput = document.getElementById("guessInput");
+      const feedbackMessage = document.getElementById("feedbackMessage");
+      const correctAnswerDisplay = document.getElementById(
+        "correctAnswerDisplay"
+      );
+      const actualCorrectWordSpan =
+        document.getElementById("actualCorrectWord");
+      const submitGuessBtn = document.getElementById("submitGuessBtn");
+      const nextRoundBtn = document.getElementById("nextRoundBtn");
+      const revealAnswerBtn = document.getElementById("revealAnswerBtn");
+
+      // Initialize total rounds display
+      totalRoundsSpan.textContent = totalRounds;
+
+      /**
+       * Shuffles the letters of a word or phrase.
+       * For phrases, it scrambles letters within words, but keeps word order.
+       * @param {string} text The word or phrase to scramble.
+       * @returns {string} The scrambled text.
+       */
+      function scrambleWord(text) {
+        let scrambledText = "";
+        do {
+          // Split the text into words to handle phrases
+          const wordsArray = text.split(" ");
+          const scrambledWords = wordsArray.map((word) => {
+            const a = word.split(""); // Convert word to array of characters
+            for (let i = a.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [a[i], a[j]] = [a[j], a[i]]; // Swap characters
+            }
+            return a.join(""); // Join characters back to scrambled word
+          });
+          scrambledText = scrambledWords.join(" "); // Join scrambled words back to phrase
+        } while (scrambledText === text && text.length > 1); // Re-scramble if identical, unless it's a 1-letter word
+
+        return scrambledText;
+      }
+
+      /**
+       * Starts a new round of the game.
+       */
+      function startRound() {
+        if (currentRound >= totalRounds) {
+          // Game over
+          scrambledWordDisplay.textContent = "Game Over!";
+          feedbackMessage.textContent = "Thanks for playing all rounds!";
+          feedbackMessage.className = "feedback-message feedback-correct";
+          guessInput.classList.add("hidden");
+          submitGuessBtn.classList.add("hidden");
+          nextRoundBtn.classList.add("hidden");
+          revealAnswerBtn.classList.add("hidden");
+          correctAnswerDisplay.classList.add("hidden");
+          return;
+        }
+
+        currentWord = words[currentRound];
+        // Ensure both single words and phrases are scrambled correctly
+        const scrambled = scrambleWord(currentWord.word.toUpperCase());
+        scrambledWordDisplay.textContent = scrambled;
+        guessInput.value = ""; // Clear previous guess
+        feedbackMessage.textContent = ""; // Clear feedback
+        correctAnswerDisplay.classList.add("hidden"); // Hide correct answer display
+        submitGuessBtn.classList.remove("hidden"); // Show submit button
+        nextRoundBtn.classList.add("hidden"); // Hide next round button
+        revealAnswerBtn.classList.remove("hidden"); // Show reveal answer button
+        guessInput.focus(); // Focus input for quick typing
+        roundNumberSpan.textContent = currentRound + 1; // Update round number
+      }
+
+      /**
+       * Checks the player's guess.
+       */
+      function checkGuess() {
+        const guess = guessInput.value.toUpperCase().trim();
+        const correct = currentWord.word.toUpperCase();
+
+        if (guess === correct) {
+          feedbackMessage.textContent = "Correct! Great job!";
+          feedbackMessage.className = "feedback-message feedback-correct";
+          submitGuessBtn.classList.add("hidden"); // Hide submit
+          revealAnswerBtn.classList.add("hidden"); // Hide reveal
+          nextRoundBtn.classList.remove("hidden"); // Show next round
+          currentRound++; // Increment round for next time
+        } else {
+          feedbackMessage.textContent = "Not quite, try again!";
+          feedbackMessage.className = "feedback-message feedback-incorrect";
+        }
+      }
+
+      /**
+       * Reveals the correct answer for the current round.
+       */
+      function revealAnswer() {
+        actualCorrectWordSpan.textContent = currentWord.word.toUpperCase();
+        correctAnswerDisplay.classList.remove("hidden");
+        feedbackMessage.textContent = "Answer revealed!";
+        feedbackMessage.className = "feedback-message"; // Neutral feedback
+        submitGuessBtn.classList.add("hidden"); // Hide submit
+        revealAnswerBtn.classList.add("hidden"); // Hide reveal
+        nextRoundBtn.classList.remove("hidden"); // Show next round
+        currentRound++; // Increment round for next time
+      }
+
+      // Event Listeners
+      submitGuessBtn.addEventListener("click", checkGuess);
+      guessInput.addEventListener("keypress", function (event) {
+        if (
+          event.key === "Enter" &&
+          !submitGuessBtn.classList.contains("hidden")
+        ) {
+          checkGuess();
+        } else if (
+          event.key === "Enter" &&
+          !nextRoundBtn.classList.contains("hidden")
+        ) {
+          startRound();
+        }
+      });
+      nextRoundBtn.addEventListener("click", startRound);
+      revealAnswerBtn.addEventListener("click", revealAnswer);
+
+      // Start the first round when the page loads
+      document.addEventListener("DOMContentLoaded", startRound);
+    </script>
+  </body>
+</html>
